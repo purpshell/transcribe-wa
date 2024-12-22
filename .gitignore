@@ -24,3 +24,6 @@ go.work.sum
 # env file
 .env
 transcribe.db
+
+# Executable file
+transcribe-wa

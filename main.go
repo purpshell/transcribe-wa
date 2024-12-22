@@ -19,7 +19,6 @@ import (
 	"github.com/mdp/qrterminal/v3"
 	"github.com/openai/openai-go"
 	"go.mau.fi/util/exmime"
-	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/ptr"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -186,7 +185,7 @@ func handler(rawEvt interface{}) {
 		}
 
 		if !evt.Info.IsFromMe {
-			return // only my messages allowed (for now)
+			return
 		}
 
 		chatInitialized := false
@@ -207,8 +206,26 @@ func handler(rawEvt interface{}) {
 
 		switch messageText {
 		case "ping":
-			cli.SendMessage(ctx, evt.Info.Chat, &waE2E.Message{
+			_, _ = cli.SendMessage(ctx, evt.Info.Chat, &waE2E.Message{
 				Conversation: ptr.Ptr("pong"),
+			})
+		case "@everyone":
+			info, _ := cli.GetGroupInfo(evt.Info.Chat)
+			participants := make([]string, 0, len(info.Participants))
+			for _, part := range info.Participants {
+				participants = append(participants, part.JID.String())
+			}
+			_, _ = cli.SendMessage(ctx, evt.Info.Chat, &waE2E.Message{
+				ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+					Text: ptr.Ptr(fmt.Sprintf("Mentioning everyone (%d participants)", len(participants))),
+					ContextInfo: &waE2E.ContextInfo{
+						MentionedJID:  participants,
+						StanzaID:      evt.Message.ExtendedTextMessage.ContextInfo.StanzaID,
+						Participant:   evt.Message.ExtendedTextMessage.ContextInfo.Participant,
+						RemoteJID:     evt.Message.ExtendedTextMessage.ContextInfo.RemoteJID,
+						QuotedMessage: evt.Message.ExtendedTextMessage.ContextInfo.QuotedMessage,
+					},
+				},
 			})
 		case "tenable", "tdisable":
 			if chatInitialized {
@@ -230,7 +247,15 @@ func handler(rawEvt interface{}) {
 			}
 
 			reaction := cli.BuildReaction(evt.Info.Chat, evt.Info.Sender, evt.Info.ID, "👍")
-			cli.SendMessage(ctx, evt.Info.Chat, reaction)
+			_, err = cli.SendMessage(ctx, evt.Info.Chat, reaction)
+			if err == nil {
+				timer := time.NewTimer(15 * time.Second)
+				go func() {
+					<-timer.C
+					reaction = cli.BuildReaction(evt.Info.Chat, evt.Info.Sender, evt.Info.ID, "")
+					_, err = cli.SendMessage(ctx, evt.Info.Chat, reaction)
+				}()
+			}
 		}
 
 		if !chatEnabled {
@@ -239,18 +264,6 @@ func handler(rawEvt interface{}) {
 
 		if audio := evt.Message.AudioMessage; chatEnabled && audio != nil {
 			data, err := cli.Download(audio)
-
-			if !ffmpeg.Supported() {
-				log.Errorf("ffmpeg is not supported on this system")
-				os.Exit(1)
-			}
-
-			/*data, err = ffmpeg.ConvertBytes(ctx, data, ".mp3", []string{}, []string{
-				"-acodec", "libmp3lame",
-				"-ar", "44100",
-				"-ac", "2",
-				"-b:a", "192k",
-			}, )*/
 
 			mime := audio.GetMimetype()
 			transcription, err := openAIClient.Audio.Transcriptions.New(ctx, openai.AudioTranscriptionNewParams{

@@ -1,14 +1,26 @@
-# transcribe-wa
-This is one of my playground projects which solves a huge issue for me (as I am a known voice message spammer).
-Docker (and docker-compose) and more customization options supported soon!
-Also the code is to be much more optimized soon. Kinda barebones (programmed & published in under 1h45min)
+# transcribe-wa - A Transcription Project
+This is one of my playground projects which solves a huge issue for me (as a known voice message spammer).
+I also included a bonus feature of mentioning every person in the group chat.
 
-Documentation soon
-# Contact me
-All my contact options can be found on my [github profile](https://github.com/purpshell)
+# Installation
+Simply clone the git repo to your local device, install Go, then run `go mod tidy`.
+
+# Usage
+Run `go build` to generate an executable for your system architecture.
+Copy `.env.example` to `.env` and enter your OpenAI key and database settings (only SQLite3 and PostgresSQL are supported).  
+Then, run the app (`./transcribe-wa`). Scan the QR code in the settings of the WhatsApp app.
+
+There are the following commands (that only you can run):
+- tenable — Enable transcription for the chat
+- tdisable — Disable transcription for the chat
+- ping — Check if the app is alive
+- @everyone — Mentions every single person in the group
+
+# Contact
+All my contact options can be found on my [GitHub profile](https://github.com/purpshell).
 
 # Sponsor
-If you found this useful, and you'd like to sponsor open-source work like this, please check out my [GitHub Sponsors](https://github.com/sponsors/purpshell) page
+If you found this useful, and you'd like to sponsor open-source work like this, please check out my [GitHub Sponsors](https://github.com/sponsors/purpshell) page.
 
 # License
 This project is distributed under the "MIT License".
